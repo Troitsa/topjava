@@ -3,11 +3,11 @@ package ru.javawebinar.topjava.util;
 import ru.javawebinar.topjava.model.UserMeal;
 import ru.javawebinar.topjava.model.UserMealWithExceed;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * GKislin
@@ -29,7 +29,59 @@ public class UserMealsUtil {
     }
 
     public static List<UserMealWithExceed>  getFilteredWithExceeded(List<UserMeal> mealList, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
-        System.out.println("TODO return filtered list with correctly exceeded field");
-        return null;
+
+        //1. Мар для собирание милсов по дням
+        Map<LocalDate, List<UserMeal>> sumByDay = new TreeMap<>();
+
+        //2. Собрать в этом сете имеющиеся дни в mealList
+        Set<LocalDate> days = new LinkedHashSet<>();
+
+        for (UserMeal meal : mealList) {
+            days.add(meal.getDateTime().toLocalDate()); // кладу в days дни
+        }
+
+        for (LocalDate day : days) {
+            List<UserMeal> userMeals = new ArrayList<>(); // 3. промежуточная коллекция UserMeal
+            for (UserMeal m : mealList){
+                if (day.equals(m.getDateTime().toLocalDate())){
+                    userMeals.add(m); // в userMeals кладу отсортированные по дням итемы
+                }
+            }
+            sumByDay.put(day, userMeals); // получаю итем sumByDay от day и userMeals
+        }
+
+        //4. Результирующий лист UserMealWithExceed
+        List<UserMealWithExceed> mealWithExceeds = new ArrayList<>();
+
+        for (Map.Entry<LocalDate, List<UserMeal>> entry : sumByDay.entrySet()) {
+
+            int amount = 0; // счетчик каллории за день
+
+            for (UserMeal m : entry.getValue()) {
+                amount += m.getCalories();
+            }
+
+            if (amount >= caloriesPerDay)
+            {
+                for (UserMeal m : entry.getValue()) {
+                    if (TimeUtil.isBetween(m.getDateTime().toLocalTime(),startTime, endTime)){
+                        mealWithExceeds.add(
+                                new UserMealWithExceed( m.getDateTime(), m.getDescription(), m.getCalories(), true)
+                        );
+                    }
+                }
+            }
+            else {
+                for (UserMeal m : entry.getValue()) {
+                    if (TimeUtil.isBetween(m.getDateTime().toLocalTime(),startTime, endTime)){
+                        mealWithExceeds.add(
+                                new UserMealWithExceed( m.getDateTime(), m.getDescription(), m.getCalories(), false)
+                        );
+                    }
+                }
+            }
+        }
+
+        return mealWithExceeds;
     }
 }
